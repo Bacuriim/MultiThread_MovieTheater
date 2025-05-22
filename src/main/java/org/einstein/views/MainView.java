@@ -1,58 +1,109 @@
 package org.einstein.views;
 
 import javafx.application.Application;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
-import javafx.scene.control.TitledPane;
-import javafx.scene.layout.AnchorPane;
+import javafx.scene.control.*;
+import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import org.einstein.cinema.CinemaThread;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class MainView {
+
+	@FXML
+	protected Pane paneMain;
+
+	@FXML
+	protected VBox vbMain;
+
+	@FXML
+	protected Pane paneVisual;
+
+	@FXML
+	protected GridPane gridPane;
+
+	@FXML
+	protected Button btAddFan;
+
+	@FXML
+	protected Button btRemoveFan;
+	
+	protected TextField tfFanName = new TextField();
+	protected TextField tfBreakTime = new TextField();
 	
 	static int i = 1;
 	
 	static ArrayList<CinemaThread.Fan> fans = new ArrayList<>();
 	
-	public static Stage show() {
-		Stage window = new Stage();
-		Label label = new Label("Olá, JavaFX no Java 17!");
-		Scene scene = new Scene(label, 300, 100);
-		
-		Button btAddFans = new Button("Add Fans");
-		Button btRemoveFans = new Button("Remove Fans");
-		
-		btAddFans.setOnAction(e -> {
-			fans.add(new CinemaThread.Fan(i, i));
-			fans.get(i - 1).start();
-			i++;
+	public void initialize() {
+		btAddFan.setOnAction(e -> {
+			try {
+				createFan();
+			} catch (IOException ignored) {
+			}
+			if (!tfFanName.getText().isEmpty() && !tfBreakTime.getText().isEmpty()) {
+				fans.add(new CinemaThread.Fan(tfFanName.getText(), Integer.parseInt(tfBreakTime.getText())));
+				fans.get(i - 1).start();
+				i++;
+			}
 		});
-		
-		btRemoveFans.setOnAction(e -> {
-			if (fans.isEmpty())
+
+		btRemoveFan.setOnAction(e -> {
+			if (fans.isEmpty()) {
 				System.out.println("Fans is empty");
-			else {
+			}
+			else if (!tfFanName.getText().isEmpty()){
 				fans.get(fans.size() - 1).terminate();
 				fans.remove(fans.size() - 1);
 				i--;
 			}
 		});
-
-		TitledPane titledPane = new TitledPane();
-		AnchorPane anchorPane = new AnchorPane();
-		titledPane.setContent(anchorPane);
-		anchorPane.getChildren().add(btAddFans);
-		anchorPane.getChildren().add(btRemoveFans);
-		btRemoveFans.setLayoutY(btAddFans.getLayoutY() + 40);
-		scene.setRoot(titledPane);
-		
+	}
+	
+	public static Stage show() throws IOException {
+		Parent root = FXMLLoader.load(Objects.requireNonNull(MainView.class.getResource("/views/CinemaView.fxml")));
+		Scene scene = new Scene(root);
+		Stage window = new Stage();
 		window.setScene(scene);
-		window.setTitle("JavaFX + Java 17");
+		window.setTitle("Cinema");
 		return window;
+	}
+	
+	public static void createFan() throws IOException {
+		Parent root = FXMLLoader.load(Objects.requireNonNull(MainView.class.getResource("/views/CreateFanView.fxml")));
+		Stage window = new Stage();
+		Scene scene = new Scene(root, 200, 200);
+		window.setScene(scene);
+		window.setTitle("Criar Fan");
+
+		TextField tfFanName = new TextField();
+		tfFanName.setPromptText("Nome do Fan");
+
+		TextField tfBreakTime = new TextField();
+		tfBreakTime.setPromptText("Tempo de lanche do fan em segundos");
+
+		Label lbFanName = new Label("Nome do Fan");
+		Label lbBreakTime = new Label("Tempo de lanche do fan");
+
+		VBox vbFan = new VBox();
+		HBox hbFanName = new HBox();
+		hbFanName.getChildren().addAll(tfFanName, lbFanName);
+		HBox hbBreakTime = new HBox();
+		hbBreakTime.getChildren().addAll(tfBreakTime, lbBreakTime);
+		vbFan.getChildren().add(hbFanName);
+		vbFan.getChildren().add(hbBreakTime);
+		
+		window.show();
+		
+		window.setOnCloseRequest(e -> {
+			window.hide();
+		});
 	}
 	
 }

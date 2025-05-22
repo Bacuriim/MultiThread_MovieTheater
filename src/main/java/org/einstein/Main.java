@@ -3,7 +3,6 @@ package org.einstein;
 import javafx.application.Application;
 import javafx.stage.Stage;
 import org.einstein.cinema.CinemaThread;
-import org.einstein.cinema.Test;
 import org.einstein.controllers.ScreenController;
 import org.einstein.views.MainView;
 

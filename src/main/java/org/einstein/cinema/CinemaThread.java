@@ -1,116 +1,113 @@
 package org.einstein.cinema;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class CinemaThread {
 
 	public static final int CAPACITY = 5;
-	public static final int EXHIBITION_TIME = 2; // segundos
-	public static final int BREAK_TIME = 3; // segundos
+	public static final int EXHIBITION_TIME = 10; // segundos
 
 	static Semaphore mutex = new Semaphore(1);
 	static Semaphore salaCheia = new Semaphore(0);
 	static Semaphore inicioFilme = new Semaphore(0);
-	static Semaphore fimFilme = new Semaphore(0);
-	static Semaphore porta = new Semaphore(CAPACITY); // controla o número máximo dentro da sala
+	static Semaphore porta = new Semaphore(CAPACITY);
 
 	static AtomicInteger dentro = new AtomicInteger(0);
-	static AtomicInteger total = new AtomicInteger(0);
 
 	public static class Demonstrator extends Thread {
+		Instant inicio;
 		public void run() {
 			while (true) {
 				try {
-					salaCheia.acquire(); // Aguarda o último fã liberar a entrada
+					salaCheia.acquire();
 
-					mutex.acquire();
-					System.out.println("[Demonstrador] Iniciando exibição.");
-					mutex.release();
-
-					showFilm();
-
-					for (int i = 0; i < CAPACITY; i++) {
-						inicioFilme.release();
+					log("[Demonstrador] Iniciando exibição.");
+					inicioFilme.release(CAPACITY);
+					
+					inicio = Instant.now();
+					while (Duration.between(inicio, Instant.now()).getSeconds() < EXHIBITION_TIME) {
+						// Esperando o tempo de exibição
 					}
 
-					for (int i = 0; i < CAPACITY; i++) {
-						fimFilme.acquire();
-					}
-
-					mutex.acquire();
-					System.out.println("[Demonstrador] Exibição encerrada. Próximo ciclo...");
-					mutex.release();
-
-					// Libera a entrada para o próximo grupo
-					porta.release(CAPACITY);
-
-				} catch (InterruptedException e) {
-					e.printStackTrace();
+					log("[Demonstrador] Exibição encerrada. Aguardando todos saírem...");
+				} catch (Exception ignored) {
 				}
 			}
 		}
 	}
 
-	// ----------------- Fã -----------------
 	public static class Fan extends Thread {
-		int id;
+		String name;
 		int coffeeBreakTime;
 		volatile boolean active = true;
+		Instant cbStart;
+		Instant exbStart;
+
+		public Fan(String name, int coffeeBreakTime) {
+			this.name = name;
+			this.coffeeBreakTime = coffeeBreakTime;
+		}
 
 		public void terminate() {
 			active = false;
-			this.interrupt(); // acorda caso esteja dormindo
-		}
-
-		public Fan(int id, int coffeeBreakTime) {
-			this.id = id;
-			this.coffeeBreakTime = coffeeBreakTime;
+			this.interrupt();
 		}
 
 		public void run() {
 			try {
-				mutex.acquire();
-				total.incrementAndGet();
-				System.out.println("[Fã " + id + "] Criado");
-				mutex.release();
+				log("[Fã " + name + "] Criado");
+
 				while (true) {
-					porta.acquire(); // entra na sala se houver espaço
+					porta.acquire();
 
 					int count = dentro.incrementAndGet();
-					System.out.println("[Fã " + id + "] Entrou na sala. Total: " + count);
+					log("[Fã " + name + "] Entrou na sala. Total: " + count);
 
 					if (count == CAPACITY) {
-						salaCheia.release(); // o último avisa o demonstrador
+						salaCheia.release(); // último avisa o demonstrador
 					}
-					
-					System.out.println("[Fã " + id + "] Assistindo ao filme...");
-					
-					inicioFilme.acquire(); // espera o demonstrador liberar
 
-					Thread.sleep(EXHIBITION_TIME * 1000L);
-					fimFilme.release();
+					inicioFilme.acquire();
+
+					exbStart = Instant.now();
+					while (Duration.between(exbStart, Instant.now()).getSeconds() < EXHIBITION_TIME) {
+						// Esperando o tempo de exibição
+					}
 
 					int restam = dentro.decrementAndGet();
-					System.out.println("[Fã " + id + "] Saiu da sala. Restam: " + restam);
+					log("[Fã " + name + "] Saiu da sala. Restam: " + restam);
 
-					System.out.println("[Fã " + id + "] Indo para o coffee break.");
-					coffeeBreak(id, coffeeBreakTime);
+					if (restam == 0) {
+						log("[Fã " + name + "] Fui o último a sair. Liberando próxima turma.");
+						porta.release(CAPACITY);
+					}
+
+					log("[Fã " + name + "] Indo para o coffee break.");
+					cbStart = Instant.now();
+					coffeeBreak();
 				}
-			} catch (Exception ignored) {
-				
+			} catch (InterruptedException ignored) {
+			}
+		}
+
+		private void coffeeBreak() throws InterruptedException {
+			log("[Fã " + name + "] Coffee break...");
+			while (Duration.between(cbStart, Instant.now()).getSeconds() < coffeeBreakTime) {
+				// Simulando pausa
 			}
 		}
 	}
 
-	public static void showFilm() throws InterruptedException {
-		System.out.println("[Filme] Exibindo filme...");
-		Thread.sleep(EXHIBITION_TIME * 1000L);
-		System.out.println("[Filme] Finalizando filme...");
-	}
-
-	public static void coffeeBreak(int id, int breakTime) throws InterruptedException {
-		System.out.println("[Fã " + id + "] Coffee break...");
-		Thread.sleep(breakTime * 1000L);
+	private static void log(String msg) {
+		try {
+			mutex.acquire();
+			System.out.println(msg);
+		} catch (InterruptedException ignored) {
+		} finally {
+			mutex.release();
+		}
 	}
 }
