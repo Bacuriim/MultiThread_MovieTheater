@@ -55,6 +55,10 @@ public class CinemaThread {
 			active = false;
 			this.interrupt();
 		}
+		
+		public String getNameThread() {
+			return name;
+		}
 
 		public void run() {
 			try {
