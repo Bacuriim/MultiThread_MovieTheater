@@ -8,7 +8,7 @@ import org.einstein.cinema.CinemaThread;
 
 import java.util.List;
 
-public class CreateFanView {
+public class CreateFanController {
 
 	@FXML
 	private TextField tfFanName;
@@ -43,7 +43,7 @@ public class CreateFanView {
 			if (fans.stream().anyMatch(fan -> fan.getNameThread().equals(name))) return;
 			try {
 				int breakTime = Integer.parseInt(breakTimeStr);
-				CinemaThread.Fan fan = new CinemaThread.Fan(name, breakTime);
+				CinemaThread.Fan fan = new CinemaThread.Fan(name, breakTime, MainController.getInstance());
 				fans.add(fan);
 				fan.start();
 				System.out.println("Fan criado: " + name + " com break time: " + breakTime);

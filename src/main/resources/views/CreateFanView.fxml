@@ -10,7 +10,7 @@
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 
-<Pane fx:id="pane" prefHeight="150.0" prefWidth="250.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.einstein.controllers.CreateFanView">
+<Pane fx:id="pane" prefHeight="150.0" prefWidth="250.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.einstein.controllers.CreateFanController">
    <children>
       <VBox fx:id="vbMain" alignment="CENTER" spacing="10.0">
          <children>
