@@ -43,7 +43,7 @@ public class CreateFanController {
 			if (fans.stream().anyMatch(fan -> fan.getNameThread().equals(name))) return;
 			try {
 				int breakTime = Integer.parseInt(breakTimeStr);
-				CinemaThread.Fan fan = new CinemaThread.Fan(name, breakTime, MainController.getInstance());
+				CinemaThread.Fan fan = new CinemaThread.Fan(name, breakTime);
 				fans.add(fan);
 				fan.start();
 				System.out.println("Fan criado: " + name + " com break time: " + breakTime);

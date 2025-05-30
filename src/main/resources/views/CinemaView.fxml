@@ -2,11 +2,11 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
-<?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 
@@ -14,14 +14,38 @@
    <children>
       <VBox fx:id="vbMain" alignment="CENTER" layoutX="10.0" layoutY="10.0" spacing="10.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
          <children>
-            <Pane fx:id="paneVisual" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity">
+            <Label fx:id="lbDemonstratorStatus">
                <VBox.margin>
-                  <Insets />
+                  <Insets top="10.0" />
                </VBox.margin>
-            </Pane>
-            <GridPane fx:id="gridPane" hgap="5.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" vgap="5.0">
+            </Label>
+            <GridPane fx:id="gpFanStatus" alignment="CENTER" hgap="5.0" vgap="5.0">
+              <columnConstraints>
+                <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                  <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                  <ColumnConstraints halignment="CENTER" hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+              </columnConstraints>
+              <rowConstraints>
+                <RowConstraints minHeight="10.0" prefHeight="20.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="20.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="20.0" vgrow="SOMETIMES" />
+                  <RowConstraints minHeight="10.0" prefHeight="20.0" vgrow="SOMETIMES" />
+              </rowConstraints>
+               <VBox.margin>
+                  <Insets bottom="10.0" />
+               </VBox.margin>
+               <children>
+                  <Label text="Na fila" />
+                  <Label text="Assistido o Filme" GridPane.rowIndex="3" />
+                  <Label text="Lanchando" GridPane.rowIndex="2" />
+                  <Label text="Aguardando o Inicio" GridPane.rowIndex="1" />
+               </children>
+            </GridPane>
+            <GridPane fx:id="gridPane" hgap="10.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="100.0" prefWidth="359.0" vgap="5.0">
                <columnConstraints>
-                  <ColumnConstraints fillWidth="false" hgrow="SOMETIMES" maxWidth="-Infinity" minWidth="-Infinity" prefWidth="100.0" />
+                  <ColumnConstraints fillWidth="false" halignment="CENTER" hgrow="SOMETIMES" prefWidth="100.0" />
+                  <ColumnConstraints fillWidth="false" halignment="CENTER" hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
                </columnConstraints>
                <rowConstraints>
                   <RowConstraints maxHeight="-Infinity" minHeight="-Infinity" prefHeight="30.0" vgrow="SOMETIMES" />
@@ -31,16 +55,16 @@
                <children>
                   <Button fx:id="btAddFan" mnemonicParsing="false" text="Criar Fan" GridPane.halignment="CENTER" />
                   <Button fx:id="btRemoveFan" mnemonicParsing="false" text="Remover fan" GridPane.halignment="CENTER" GridPane.rowIndex="1" GridPane.valignment="CENTER" />
+                  <Button fx:id="btChangeDemonstrator" mnemonicParsing="false" text="Alterar Demonstrador" GridPane.rowIndex="2" />
+                  <Button fx:id="btStartDemonstrator" mnemonicParsing="false" text="Iniciar Demonstrador" GridPane.columnIndex="1" />
+                  <Button fx:id="btPauseDemonstrator" mnemonicParsing="false" text="Pausar Demonstrador" GridPane.columnIndex="1" GridPane.rowIndex="1" />
                </children>
                <VBox.margin>
-                  <Insets bottom="100.0" />
+                  <Insets />
                </VBox.margin>
             </GridPane>
             <TextArea fx:id="log" editable="false" />
          </children>
-         <padding>
-            <Insets bottom="10.0" />
-         </padding>
       </VBox>
    </children>
 </AnchorPane>

@@ -29,10 +29,6 @@ public class Main extends Application {
 		MainController.setInstance(loader.getController());
 		mainController = MainController.getInstance();
 		mainController.setStage(primaryStage);
-
-		// Inicia demonstrador depois que a tela principal estiver visível.
-		CinemaThread.Demonstrator demonstrator = new CinemaThread.Demonstrator();
-		demonstrator.start();
 	}
 
 	public static void main(String[] args) {
