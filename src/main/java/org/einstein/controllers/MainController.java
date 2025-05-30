@@ -69,15 +69,19 @@ public class MainController {
 
 	@FXML
 	private Button btChangeDemonstrator;
-	
+
 	@FXML
 	public TextArea log;
-	
+
+	@FXML
+	public Label lbDemonstratorStatus;
+
 	private static MainController mainController;
 
 	public final List<CinemaThread.Fan> fans = new ArrayList<>();
 	public final List<Label> fansLabels = new ArrayList<>();
-	private final Map<Label, Timeline> blinkingTimelines = new HashMap<>();
+	private final Map<Label, Timeline> blinkingFansTimelines = new HashMap<>();
+	private final Map<Label, Timeline> blinkingDemonstratorTimelines = new HashMap<>();
 	private CinemaThread.Demonstrator demonstrator;
 	private Stage stage;
 	private boolean isConfigured = false;
@@ -93,7 +97,7 @@ public class MainController {
 	public static void setInstance(MainController mainController) {
 		MainController.mainController = mainController;
 	}
-	
+
 	@FXML
 	private void initialize() {
 		btAddFan.setOnAction(e -> handleAddFan());
@@ -128,7 +132,8 @@ public class MainController {
 
 			createFanStage.setScene(new Scene(root));
 			createFanStage.setTitle("Criar Fan");
-			createFanStage.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/images/cinema.png"))));
+			createFanStage.getIcons()
+					.add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/images/cinema.png"))));
 			createFanStage.show();
 
 		} catch (IOException e) {
@@ -138,19 +143,20 @@ public class MainController {
 
 	private void handleRemoveFan() {
 		try {
-		FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/RemoveFanView.fxml"));
-		Parent root = loader.load();
+			FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/RemoveFanView.fxml"));
+			Parent root = loader.load();
 
-		RemoveFanController controller = loader.getController();
-		controller.initData(fans);
-		
-		Stage removeFanStage = new Stage();
-		controller.setStage(removeFanStage);
+			RemoveFanController controller = loader.getController();
+			controller.initData(fans);
 
-		removeFanStage.setScene(new Scene(root));
-		removeFanStage.setTitle("Remover Fan");
-		removeFanStage.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/images/cinema.png"))));
-		removeFanStage.show();
+			Stage removeFanStage = new Stage();
+			controller.setStage(removeFanStage);
+
+			removeFanStage.setScene(new Scene(root));
+			removeFanStage.setTitle("Remover Fan");
+			removeFanStage.getIcons()
+					.add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/images/cinema.png"))));
+			removeFanStage.show();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -163,21 +169,23 @@ public class MainController {
 
 			ConfigDemonstratorController controller = loader.getController();
 			demonstrator = controller.getDemonstrator();
-			
+
 			Stage configDemonstratorStage = new Stage();
 			controller.setStage(configDemonstratorStage);
 
 			configDemonstratorStage.setScene(new Scene(root));
 			configDemonstratorStage.setTitle("Configurar Demonstrador");
-			configDemonstratorStage.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/images/cinema.png"))));
+			configDemonstratorStage.getIcons()
+					.add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/images/cinema.png"))));
 			configDemonstratorStage.show();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
-	
+
 	private void handleStartDemonstrator() {
-		if (demonstrator == null) return;
+		if (demonstrator == null)
+			return;
 		if (!isConfigured) {
 			btAddFan.setDisable(false);
 			btRemoveFan.setDisable(false);
@@ -186,22 +194,31 @@ public class MainController {
 
 		btChangeDemonstrator.setDisable(true);
 		demonstrator.startDemonstrator();
-		for (Timeline fanTimeline : blinkingTimelines.values()) {
+		for (Timeline fanTimeline : blinkingFansTimelines.values()) {
 			if (Animation.Status.STOPPED.equals(fanTimeline.getStatus())) {
 				fanTimeline.play();
 			}
 		}
+
+		if (Animation.Status.STOPPED.equals(blinkingDemonstratorTimelines.get(0).getStatus())) {
+			blinkingDemonstratorTimelines.get(0).play();
+		}
 	}
-	
+
 	private void handlePauseDemonstrator() {
-		if (demonstrator == null) return;
+		if (demonstrator == null)
+			return;
 
 		btChangeDemonstrator.setDisable(false);
 		demonstrator.pauseDemonstrator();
-		for (Timeline fanTimeline : blinkingTimelines.values()) {
+		for (Timeline fanTimeline : blinkingFansTimelines.values()) {
 			if (Animation.Status.RUNNING.equals(fanTimeline.getStatus())) {
 				fanTimeline.stop();
 			}
+		}
+
+		if (Animation.Status.RUNNING.equals(blinkingDemonstratorTimelines.get(0).getStatus())) {
+			blinkingDemonstratorTimelines.get(0).stop();
 		}
 	}
 
@@ -217,11 +234,10 @@ public class MainController {
 					CinemaThread.FanStatus.ESPERANDO_O_FILME, 1,
 					CinemaThread.FanStatus.LANCHANDO, 2,
 					CinemaThread.FanStatus.SAIU_DA_SALA, 2,
-					CinemaThread.FanStatus.ASSISTINDO, 3
-			);
+					CinemaThread.FanStatus.ASSISTINDO, 3);
 
 			// Contadores de colunas para cada row (começando na coluna 1)
-			int[] colCounters = new int[]{1, 1, 1, 1};
+			int[] colCounters = new int[] { 1, 1, 1, 1 };
 
 			for (CinemaThread.Fan fan : fans) {
 				Label fanLabel = fansLabels.stream()
@@ -242,12 +258,12 @@ public class MainController {
 				} else if (CinemaThread.FanStatus.ESPERANDO_O_FILME.equals(fan.getStatus())) {
 					style += "-fx-background-color: green; -fx-text-fill: white;";
 				} else if (CinemaThread.FanStatus.LANCHANDO.equals(fan.getStatus())
-				|| CinemaThread.FanStatus.SAIU_DA_SALA.equals(fan.getStatus())) {
+						|| CinemaThread.FanStatus.SAIU_DA_SALA.equals(fan.getStatus())) {
 					style += "-fx-background-color: orange;";
 				} else if (CinemaThread.FanStatus.ASSISTINDO.equals(fan.getStatus())) {
 					style += "-fx-background-color: grey;";
 				}
-				
+
 				fanLabel.setStyle(style);
 
 				// Determina row conforme status
@@ -256,15 +272,18 @@ public class MainController {
 					int col = colCounters[row]++;
 					GridPane.setHgrow(fanLabel, Priority.ALWAYS);
 					fanLabel.setAlignment(Pos.CENTER);
-					makeLabelBlink(fanLabel, fan, colors, Duration.seconds((double) fan.getBreakTimeThread() / 20), Duration.seconds((double) CinemaThread.exhibitionTime.get() / 60));
+					makeLabelBlink(fanLabel, fan, colors, Duration.seconds((double) fan.getBreakTimeThread() / 20),
+							Duration.seconds((double) CinemaThread.exhibitionTime.get() / 60));
 					gpFanStatus.add(fanLabel, col, row);
 				}
 			}
 		});
-		gpFanStatus.getColumnConstraints().addListener((ListChangeListener<? super ColumnConstraints>) cc -> resizeGridPane());
+		gpFanStatus.getColumnConstraints()
+				.addListener((ListChangeListener<? super ColumnConstraints>) cc -> resizeGridPane());
 	}
 
-	private void makeLabelBlink(Label label, CinemaThread.Fan fan, List<Color> color, Duration breakTime, Duration watching) {
+	private void makeLabelBlink(Label label, CinemaThread.Fan fan, List<Color> color, Duration breakTime,
+			Duration watching) {
 		Platform.runLater(() -> {
 			int colorIndex;
 			Duration duration = Duration.seconds(0.5);
@@ -295,20 +314,64 @@ public class MainController {
 			Color targetColor = color.get(finalColorIndex);
 
 			// Se já houver uma animação, parar antes de criar nova
-			Timeline existingTimeline = blinkingTimelines.get(label);
+			Timeline existingTimeline = blinkingFansTimelines.get(label);
 			if (existingTimeline != null) {
 				existingTimeline.stop();
 			}
 
 			Timeline timeline = new Timeline(
-					new KeyFrame(Duration.ZERO, e -> label.setStyle("-fx-background-color: " + toRgbString(Color.WHITE) + ";")),
-					new KeyFrame(duration, e -> label.setStyle("-fx-background-color: " + toRgbString(targetColor) + ";"))
-			);
+					new KeyFrame(Duration.ZERO,
+							e -> label.setStyle("-fx-background-color: " + toRgbString(Color.WHITE) + ";")),
+					new KeyFrame(duration,
+							e -> label.setStyle("-fx-background-color: " + toRgbString(targetColor) + ";")));
 
 			timeline.setCycleCount(Animation.INDEFINITE);
 			timeline.setAutoReverse(true);
 			// Armazenar a nova animação
-			blinkingTimelines.put(label, timeline);
+			blinkingFansTimelines.put(label, timeline);
+			timeline.play();
+		});
+	}
+
+	private void makeLabelBlink(Label label, CinemaThread.Demonstrator demonstrator, List<Color> color) {
+		Platform.runLater(() -> {
+			int colorIndex;
+			Duration duration = Duration.seconds(0.5);
+
+			switch (demonstrator.getStatus()) {
+				case ESPERANDO_FANS:
+					colorIndex = 0;
+					break;
+				case EXIBINDO_FILME:
+					colorIndex = 1;
+					break;
+				case EXIBICAO_ENCERRADA:
+					colorIndex = 2;
+					break;
+				default:
+					colorIndex = 0;
+					break;
+			}
+
+			int finalColorIndex = Math.min(colorIndex, color.size() - 1);
+			Color targetColor = color.get(finalColorIndex);
+
+			// Se já houver uma animação, parar antes de criar nova
+			Timeline existingTimeline = blinkingDemonstratorTimelines.get(label);
+			if (existingTimeline != null) {
+				existingTimeline.stop();
+			}
+
+			Timeline timeline = new Timeline(
+					new KeyFrame(Duration.ZERO,
+							e -> label.setStyle("-fx-background-color: " + toRgbString(Color.WHITE) + ";")),
+					new KeyFrame(duration,
+							e -> label.setStyle("-fx-background-color: " + toRgbString(targetColor) + ";")));
+
+			timeline.setCycleCount(Animation.INDEFINITE);
+			timeline.setAutoReverse(true);
+			// Armazenar a nova animação
+			blinkingDemonstratorTimelines.put(label, timeline);
 			timeline.play();
 		});
 	}
@@ -320,9 +383,9 @@ public class MainController {
 		return "rgb(" + r + "," + g + "," + b + ")";
 	}
 
-
 	private void resizeGridPane() {
-		// O total de colunas deve ser o maior número de colunas usadas em qualquer linha
+		// O total de colunas deve ser o maior número de colunas usadas em qualquer
+		// linha
 		int maxColumns = fans.stream()
 				.collect(Collectors.groupingBy(CinemaThread.Fan::getStatus))
 				.values().stream()
@@ -350,5 +413,14 @@ public class MainController {
 			cc.setMinWidth(widthPerCol);
 			cc.setMaxWidth(widthPerCol);
 		}
+	}
+
+	private void updateDemonstratorStatus() {
+		Platform.runLater(() -> {
+			if (demonstrator != null)
+				lbDemonstratorStatus.setText("Demonstrador: " + demonstrator.getStatus());
+			makeLabelBlink(lbDemonstratorStatus, demonstrator,
+					Arrays.asList(Color.Gray, Color.Green, Color.Yellow, Color.Red));
+		});
 	}
 }

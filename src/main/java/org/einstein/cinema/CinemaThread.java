@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
 public class CinemaThread {
-	
+
 	public static AtomicInteger capacity = new AtomicInteger(5);
 	public static AtomicInteger exhibitionTime = new AtomicInteger(30);
 
@@ -26,17 +26,17 @@ public class CinemaThread {
 		MainController controller = MainController.getInstance();
 
 		volatile boolean isRunning = false;
-		
-		public String getStatus() {
-			return "[Demonstrador] " + status.getDesc();
+
+		public Status getStatus() {
+			return status;
 		}
-		
+
 		public void setCapacity(int capacity) {
 			log("[Demonstrador] Capacidade alterada: " + capacity);
 			CinemaThread.capacity.set(capacity);
 			CinemaThread.porta = new Semaphore(capacity);
 		}
-		
+
 		public void setExhibitionTime(int exhibitionTime) {
 			log("[Demonstrador] Tempo de Exibicao alterado: " + exhibitionTime);
 			CinemaThread.exhibitionTime.set(exhibitionTime);
@@ -55,7 +55,7 @@ public class CinemaThread {
 			if (!this.isAlive())
 				this.start();
 		}
-		
+
 		public Demonstrator(int exhibitionTime, int capacity) {
 			log("[Demonstrador] Criado!");
 			CinemaThread.exhibitionTime.set(exhibitionTime);
@@ -65,11 +65,11 @@ public class CinemaThread {
 
 		public void run() {
 			while (true) {
-				
+
 				while (!isRunning) {
 					LockSupport.parkNanos(1_000_000);
 				}
-				
+
 				try {
 					status = DemonstratorStatus.ESPERANDO_FANS;
 					log("[Demonstrador] " + status.getDesc());
@@ -111,11 +111,11 @@ public class CinemaThread {
 		public String getNameThread() {
 			return name;
 		}
-		
+
 		public int getBreakTimeThread() {
 			return coffeeBreakTime;
 		}
-		
+
 		public FanStatus getStatus() {
 			return status == null ? FanStatus.NA_FILA : status;
 		}
@@ -129,7 +129,7 @@ public class CinemaThread {
 					while (CinemaThread.paused) {
 						LockSupport.parkNanos(1_000_000);
 					}
-					
+
 					if (watchAtLeastOnce)
 						status = FanStatus.VOLTANDO_DO_LANCHE;
 					else
@@ -203,7 +203,7 @@ public class CinemaThread {
 			mutex.release();
 		}
 	}
-	
+
 	public enum FanStatus {
 		NA_FILA("Esta aguardando na fila."),
 		VOLTANDO_DO_LANCHE("Voltou do lanche e esta aguardando na fila."),
@@ -213,7 +213,7 @@ public class CinemaThread {
 		LANCHANDO("Esta lanchando...");
 
 		private String desc;
-		
+
 		FanStatus(String desc) {
 			this.desc = desc;
 		}
@@ -222,14 +222,14 @@ public class CinemaThread {
 			return desc;
 		}
 	}
-	
+
 	public enum DemonstratorStatus {
 		ESPERANDO_FANS("Esperando fans."),
 		EXIBINDO_FILME("Iniciando exibição."),
 		EXIBICAO_ENCERRADA("Exibicao encerrada. Esperando fans.");
-		
+
 		private String desc;
-		
+
 		DemonstratorStatus(String desc) {
 			this.desc = desc;
 		}

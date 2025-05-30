@@ -15,13 +15,15 @@ import java.util.Objects;
 public class Main extends Application {
 
 	MainController mainController;
+
 	@Override
 	public void start(Stage primaryStage) throws Exception {
 		FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/CinemaView.fxml"));
 		Parent root = loader.load();
-		
+
 		primaryStage.setTitle("Cinema");
-		primaryStage.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/images/cinema.png"))));
+		primaryStage.getIcons()
+				.add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/images/cinema.png"))));
 		primaryStage.setScene(new Scene(root));
 		primaryStage.setWidth(1200);
 		primaryStage.setHeight(600);
