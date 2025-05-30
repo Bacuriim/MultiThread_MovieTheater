@@ -46,6 +46,7 @@ public class CreateFanController {
 				CinemaThread.Fan fan = new CinemaThread.Fan(name, breakTime);
 				fans.add(fan);
 				fan.start();
+				MainController.getInstance().updateFanStatus();
 				System.out.println("Fan criado: " + name + " com break time: " + breakTime);
 			} catch (NumberFormatException ex) {
 				System.out.println("Break time inválido!");

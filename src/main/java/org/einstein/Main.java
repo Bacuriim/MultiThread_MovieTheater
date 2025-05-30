@@ -2,12 +2,15 @@ package org.einstein;
 
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import org.einstein.cinema.CinemaThread;
 import org.einstein.controllers.MainController;
+
+import java.util.Objects;
 
 public class Main extends Application {
 
@@ -18,6 +21,7 @@ public class Main extends Application {
 		Parent root = loader.load();
 		
 		primaryStage.setTitle("Cinema");
+		primaryStage.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/images/cinema.png"))));
 		primaryStage.setScene(new Scene(root));
 		primaryStage.setWidth(1200);
 		primaryStage.setHeight(600);

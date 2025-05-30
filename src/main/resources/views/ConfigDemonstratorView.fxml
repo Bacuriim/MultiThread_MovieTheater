@@ -11,7 +11,6 @@
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 
-
 <Pane fx:id="pane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="150.0" prefWidth="250.0" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.einstein.controllers.ConfigDemonstratorController">
    <children>
       <VBox fx:id="vbMain" alignment="CENTER" prefHeight="150.0" prefWidth="250.0" spacing="10.0">
@@ -26,7 +25,7 @@
                 <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
               </rowConstraints>
                <children>
-                  <TextField fx:id="tfExbTime" />
+                  <TextField fx:id="tfExbTime" alignment="CENTER" />
                   <Label text="Tempo de Exibicao (s)" GridPane.columnIndex="1" />
                   <Label text="Capacidade" GridPane.columnIndex="1" GridPane.rowIndex="1" />
                   <Spinner fx:id="spCapacity" GridPane.rowIndex="1" />

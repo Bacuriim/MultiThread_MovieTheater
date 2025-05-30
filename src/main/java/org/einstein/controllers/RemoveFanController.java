@@ -2,6 +2,7 @@ package org.einstein.controllers;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
@@ -51,6 +52,8 @@ public class RemoveFanController {
 			CinemaThread.Fan fan = fans.stream().filter(fanToRemove -> fanToRemove.getNameThread().equals(name)).findFirst().orElse(null);
 			if (fan != null) {
 				fans.remove(fan);
+				Label lbFan = MainController.getInstance().fansLabels.stream().filter(label -> label.getText().equals(fan.getNameThread())).findFirst().orElse(null);
+				MainController.getInstance().fansLabels.remove(lbFan);
 				fan.terminate();
 				System.out.println("Fan " + name + " removido com sucesso");
 			} else {

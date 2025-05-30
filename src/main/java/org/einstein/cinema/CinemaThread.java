@@ -18,10 +18,12 @@ public class CinemaThread {
 	static Semaphore inicioFilme = new Semaphore(0);
 	static Semaphore porta = new Semaphore(capacity.get());
 
+	public static volatile boolean paused = false;
 	static AtomicInteger dentro = new AtomicInteger(0);
 
 	public static class Demonstrator extends Thread {
 		DemonstratorStatus status;
+		MainController controller = MainController.getInstance();
 
 		volatile boolean isRunning = false;
 		
@@ -39,19 +41,19 @@ public class CinemaThread {
 			log("[Demonstrador] Tempo de Exibicao alterado: " + exhibitionTime);
 			CinemaThread.exhibitionTime.set(exhibitionTime);
 		}
-		
-		public void startDemonstrator() {
-			isRunning = true;
-			if (!this.isAlive())
-				this.start();
-			log("[Demonstrador] Resumido!");
-		}
-		
+
 		public void pauseDemonstrator() {
 			isRunning = false;
+			CinemaThread.pauseAll();
 			if (this.isAlive())
 				this.interrupt();
-			log("[Demonstrador] Pausado!");
+		}
+
+		public void startDemonstrator() {
+			isRunning = true;
+			CinemaThread.resumeAll();
+			if (!this.isAlive())
+				this.start();
 		}
 		
 		public Demonstrator(int exhibitionTime, int capacity) {
@@ -93,6 +95,7 @@ public class CinemaThread {
 		volatile boolean active = true;
 		volatile boolean watchAtLeastOnce = false;
 		FanStatus status;
+		MainController controller = MainController.getInstance();
 
 		public Fan(String name, int coffeeBreakTime) {
 			this.name = name;
@@ -113,26 +116,32 @@ public class CinemaThread {
 			return coffeeBreakTime;
 		}
 		
-		public String getStatus() {
-			return "O fan " + getNameThread() + " " + status.getDesc();
+		public FanStatus getStatus() {
+			return status == null ? FanStatus.NA_FILA : status;
 		}
 
 		@Override
 		public void run() {
 			log("[Fã " + name + "] Criado");
 
-			while (true) {
+			while (active) {
 				try {
+					while (CinemaThread.paused) {
+						LockSupport.parkNanos(1_000_000);
+					}
+					
 					if (watchAtLeastOnce)
 						status = FanStatus.VOLTANDO_DO_LANCHE;
 					else
 						status = FanStatus.NA_FILA;
+					controller.updateFanStatus();
 
 					log("[Fã " + name + "] " + status.getDesc());
 					porta.acquire();
 
 					int count = dentro.incrementAndGet();
 					status = FanStatus.ESPERANDO_O_FILME;
+					controller.updateFanStatus();
 					log("[Fã " + name + "] " + status.getDesc() + " Total: " + count);
 
 					if (count == capacity.get()) {
@@ -141,15 +150,20 @@ public class CinemaThread {
 
 					inicioFilme.acquire();
 					status = FanStatus.ASSISTINDO;
+					controller.updateFanStatus();
 					log("[Fã " + name + "] " + status.getDesc());
 					watchAtLeastOnce = true;
 					Instant exbStart = Instant.now();
 					while (Duration.between(exbStart, Instant.now()).getSeconds() < exhibitionTime.get()) {
+						while (CinemaThread.paused) {
+							LockSupport.parkNanos(1_000_000);
+						}
 						LockSupport.parkNanos(1_000_000);
 					}
 
 					int restam = dentro.decrementAndGet();
 					status = FanStatus.SAIU_DA_SALA;
+					controller.updateFanStatus();
 					log("[Fã " + name + "] " + status.getDesc() + " Restam: " + restam);
 
 					if (restam == 0) {
@@ -158,20 +172,24 @@ public class CinemaThread {
 					}
 
 					status = FanStatus.LANCHANDO;
+					controller.updateFanStatus();
 					log("[Fã " + name + "] " + status.getDesc());
 					Instant cbStart = Instant.now();
 					while (Duration.between(cbStart, Instant.now()).getSeconds() < coffeeBreakTime) {
+						while (CinemaThread.paused) {
+							LockSupport.parkNanos(1_000_000);
+						}
 						LockSupport.parkNanos(1_000_000);
 					}
 				} catch (InterruptedException e) {
-						if (!active) {
-							if (FanStatus.ESPERANDO_O_FILME.equals(status)) {
-								dentro.decrementAndGet();
-							}
-							porta.release();
-							break;
+					if (!active) {
+						if (FanStatus.ESPERANDO_O_FILME.equals(status)) {
+							dentro.decrementAndGet();
 						}
+						porta.release();
+						break;
 					}
+				}
 			}
 		}
 	}
@@ -219,5 +237,15 @@ public class CinemaThread {
 		public String getDesc() {
 			return desc;
 		}
+	}
+
+	public static void pauseAll() {
+		paused = true;
+		log("[Sistema] Pausado!");
+	}
+
+	public static void resumeAll() {
+		paused = false;
+		log("[Sistema] Retomado!");
 	}
 }
