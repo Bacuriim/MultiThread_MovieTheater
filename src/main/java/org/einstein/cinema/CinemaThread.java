@@ -27,7 +27,7 @@ public class CinemaThread {
 
 		volatile boolean isRunning = false;
 
-		public Status getStatus() {
+		public  DemonstratorStatus getStatus() {
 			return status;
 		}
 
@@ -72,9 +72,11 @@ public class CinemaThread {
 
 				try {
 					status = DemonstratorStatus.ESPERANDO_FANS;
+					controller.updateDemonstratorStatus();
 					log("[Demonstrador] " + status.getDesc());
 					salaCheia.acquire();
 					status = DemonstratorStatus.EXIBINDO_FILME;
+					controller.updateDemonstratorStatus();
 					log("[Demonstrador] " + status.getDesc());
 					inicioFilme.release(capacity.get());
 					Instant inicio = Instant.now();
@@ -82,6 +84,7 @@ public class CinemaThread {
 						LockSupport.parkNanos(1_000_000);
 					}
 					status = DemonstratorStatus.EXIBICAO_ENCERRADA;
+					controller.updateDemonstratorStatus();
 					log("[Demonstrador] " + status.getDesc());
 				} catch (InterruptedException ignored) {
 				}
@@ -185,8 +188,8 @@ public class CinemaThread {
 					if (!active) {
 						if (FanStatus.ESPERANDO_O_FILME.equals(status)) {
 							dentro.decrementAndGet();
+							porta.release();
 						}
-						porta.release();
 						break;
 					}
 				}

@@ -1,6 +1,5 @@
 package org.einstein.controllers;
 
-import com.sun.javafx.property.adapter.PropertyDescriptor;
 import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -9,7 +8,6 @@ import javafx.collections.ListChangeListener;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Pos;
-import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -81,10 +79,13 @@ public class MainController {
 	public final List<CinemaThread.Fan> fans = new ArrayList<>();
 	public final List<Label> fansLabels = new ArrayList<>();
 	private final Map<Label, Timeline> blinkingFansTimelines = new HashMap<>();
+	private final Map<Label, Boolean> isToBlinkingFansTimelines = new HashMap<>();
 	private final Map<Label, Timeline> blinkingDemonstratorTimelines = new HashMap<>();
+	private final Map<Label, Boolean> isToBlinkDemonstratorTimelines = new HashMap<>();
 	private CinemaThread.Demonstrator demonstrator;
 	private Stage stage;
 	private boolean isConfigured = false;
+	private boolean isToBlink = false;
 
 	public void setStage(Stage stage) {
 		this.stage = stage;
@@ -107,6 +108,8 @@ public class MainController {
 		btChangeDemonstrator.setOnAction(e -> handleConfigDemonstrator());
 		btStartDemonstrator.setOnAction(e -> handleStartDemonstrator());
 		btPauseDemonstrator.setOnAction(e -> handlePauseDemonstrator());
+		gpFanStatus.getColumnConstraints()
+				.addListener((ListChangeListener<? super ColumnConstraints>) cc -> resizeGridPane());
 	}
 
 	@FXML
@@ -184,7 +187,8 @@ public class MainController {
 	}
 
 	private void handleStartDemonstrator() {
-		if (demonstrator == null)
+		if (demonstrator == null 
+				|| (!CinemaThread.paused && isConfigured))
 			return;
 		if (!isConfigured) {
 			btAddFan.setDisable(false);
@@ -200,34 +204,35 @@ public class MainController {
 			}
 		}
 
-		if (Animation.Status.STOPPED.equals(blinkingDemonstratorTimelines.get(0).getStatus())) {
-			blinkingDemonstratorTimelines.get(0).play();
+		for (Timeline timeline : blinkingDemonstratorTimelines.values()) {
+			timeline.play();
 		}
 	}
 
 	private void handlePauseDemonstrator() {
-		if (demonstrator == null)
+		if (demonstrator == null
+				|| CinemaThread.paused)
 			return;
 
 		btChangeDemonstrator.setDisable(false);
 		demonstrator.pauseDemonstrator();
 		for (Timeline fanTimeline : blinkingFansTimelines.values()) {
-			if (Animation.Status.RUNNING.equals(fanTimeline.getStatus())) {
-				fanTimeline.stop();
-			}
+			fanTimeline.pause();
 		}
 
-		if (Animation.Status.RUNNING.equals(blinkingDemonstratorTimelines.get(0).getStatus())) {
-			blinkingDemonstratorTimelines.get(0).stop();
+		for (Timeline timeline : blinkingDemonstratorTimelines.values()) {
+			timeline.pause();
 		}
 	}
 
 	public void updateFanStatus() {
 		Platform.runLater(() -> {
+			blinkingFansTimelines.clear();
+			isToBlinkingFansTimelines.clear();
 			gpFanStatus.getChildren().removeIf(node -> GridPane.getColumnIndex(node) != null
 					&& GridPane.getColumnIndex(node) > 0);
 			// Remove apenas labels dinâmicas (não apaga as fixas da col 0)
-
+			fansLabels.clear();
 			Map<CinemaThread.FanStatus, Integer> statusRowMap = Map.of(
 					CinemaThread.FanStatus.NA_FILA, 0,
 					CinemaThread.FanStatus.VOLTANDO_DO_LANCHE, 0,
@@ -240,28 +245,27 @@ public class MainController {
 			int[] colCounters = new int[] { 1, 1, 1, 1 };
 
 			for (CinemaThread.Fan fan : fans) {
-				Label fanLabel = fansLabels.stream()
-						.filter(l -> l.getText().equals(fan.getNameThread()))
-						.findFirst()
-						.orElseGet(() -> {
-							Label newLabel = new Label(fan.getNameThread());
-							fansLabels.add(newLabel);
-							return newLabel;
-						});
-
+				Label fanLabel = new Label(fan.getNameThread());
+				
+				fansLabels.add(fanLabel);
+				
 				// Estilo conforme status
 				String style = "-fx-padding: 5px;";
 				List<Color> colors = Arrays.asList(Color.YELLOW, Color.GREEN, Color.ORANGE, Color.GREY);
 				if (CinemaThread.FanStatus.NA_FILA.equals(fan.getStatus()) ||
 						CinemaThread.FanStatus.VOLTANDO_DO_LANCHE.equals(fan.getStatus())) {
 					style += "-fx-background-color: yellow;";
+					isToBlinkingFansTimelines.put(fanLabel, false);
 				} else if (CinemaThread.FanStatus.ESPERANDO_O_FILME.equals(fan.getStatus())) {
 					style += "-fx-background-color: green; -fx-text-fill: white;";
+					isToBlinkingFansTimelines.put(fanLabel, false);
 				} else if (CinemaThread.FanStatus.LANCHANDO.equals(fan.getStatus())
 						|| CinemaThread.FanStatus.SAIU_DA_SALA.equals(fan.getStatus())) {
 					style += "-fx-background-color: orange;";
+					isToBlinkingFansTimelines.put(fanLabel, true);
 				} else if (CinemaThread.FanStatus.ASSISTINDO.equals(fan.getStatus())) {
 					style += "-fx-background-color: grey;";
+					isToBlinkingFansTimelines.put(fanLabel, true);
 				}
 
 				fanLabel.setStyle(style);
@@ -276,104 +280,103 @@ public class MainController {
 							Duration.seconds((double) CinemaThread.exhibitionTime.get() / 60));
 					gpFanStatus.add(fanLabel, col, row);
 				}
+				
+			}
+			for (Label fanLabel : fansLabels) {
+				if (isToBlinkingFansTimelines.get(fanLabel))
+					blinkingFansTimelines.get(fanLabel).play();
+				else
+					blinkingFansTimelines.get(fanLabel).stop();
 			}
 		});
-		gpFanStatus.getColumnConstraints()
-				.addListener((ListChangeListener<? super ColumnConstraints>) cc -> resizeGridPane());
 	}
 
 	private void makeLabelBlink(Label label, CinemaThread.Fan fan, List<Color> color, Duration breakTime,
 			Duration watching) {
-		Platform.runLater(() -> {
-			int colorIndex;
-			Duration duration = Duration.seconds(0.5);
+		int colorIndex;
+		Duration duration = Duration.seconds(0.5);
 
-			switch (fan.getStatus()) {
-				case NA_FILA:
-				case VOLTANDO_DO_LANCHE:
-					colorIndex = 0;
-					break;
-				case ESPERANDO_O_FILME:
-					colorIndex = 1;
-					break;
-				case LANCHANDO:
-				case SAIU_DA_SALA:
-					duration = breakTime;
-					colorIndex = 2;
-					break;
-				case ASSISTINDO:
-					duration = watching;
-					colorIndex = 3;
-					break;
-				default:
-					colorIndex = 0;
-					break;
-			}
+		switch (fan.getStatus()) {
+			case NA_FILA:
+			case VOLTANDO_DO_LANCHE:
+				colorIndex = 0;
+				break;
+			case ESPERANDO_O_FILME:
+				colorIndex = 1;
+				break;
+			case LANCHANDO:
+			case SAIU_DA_SALA:
+				duration = breakTime;
+				colorIndex = 2;
+				break;
+			case ASSISTINDO:
+				duration = watching;
+				colorIndex = 3;
+				break;
+			default:
+				colorIndex = 0;
+				break;
+		}
 
-			int finalColorIndex = Math.min(colorIndex, color.size() - 1);
-			Color targetColor = color.get(finalColorIndex);
+		int finalColorIndex = Math.min(colorIndex, color.size() - 1);
+		Color targetColor = color.get(finalColorIndex);
 
-			// Se já houver uma animação, parar antes de criar nova
-			Timeline existingTimeline = blinkingFansTimelines.get(label);
-			if (existingTimeline != null) {
-				existingTimeline.stop();
-			}
+		// Se já houver uma animação, parar antes de criar nova
+		Timeline existingTimeline = blinkingFansTimelines.get(label);
+		if (existingTimeline != null) {
+			existingTimeline.stop();
+		}
 
-			Timeline timeline = new Timeline(
-					new KeyFrame(Duration.ZERO,
-							e -> label.setStyle("-fx-background-color: " + toRgbString(Color.WHITE) + ";")),
-					new KeyFrame(duration,
-							e -> label.setStyle("-fx-background-color: " + toRgbString(targetColor) + ";")));
+		Timeline timeline = new Timeline(
+				new KeyFrame(Duration.ZERO,
+						e -> label.setStyle("-fx-background-color: " + toRgbString(Color.WHITE) + ";")),
+				new KeyFrame(duration,
+						e -> label.setStyle("-fx-background-color: " + toRgbString(targetColor) + ";")));
 
-			timeline.setCycleCount(Animation.INDEFINITE);
-			timeline.setAutoReverse(true);
-			// Armazenar a nova animação
-			blinkingFansTimelines.put(label, timeline);
-			timeline.play();
-		});
+		timeline.setCycleCount(Animation.INDEFINITE);
+		timeline.setAutoReverse(true);
+		// Armazenar a nova animação
+		blinkingFansTimelines.put(label, timeline);
 	}
 
-	private void makeLabelBlink(Label label, CinemaThread.Demonstrator demonstrator, List<Color> color) {
-		Platform.runLater(() -> {
-			int colorIndex;
-			Duration duration = Duration.seconds(0.5);
+	private void makeLabelBlink(CinemaThread.Demonstrator demonstrator, List<Color> color) {
+		int colorIndex;
+		Duration duration = Duration.seconds(0.5);
 
-			switch (demonstrator.getStatus()) {
-				case ESPERANDO_FANS:
-					colorIndex = 0;
-					break;
-				case EXIBINDO_FILME:
-					colorIndex = 1;
-					break;
-				case EXIBICAO_ENCERRADA:
-					colorIndex = 2;
-					break;
-				default:
-					colorIndex = 0;
-					break;
-			}
+		switch (demonstrator.getStatus()) {
+			case ESPERANDO_FANS:
+				colorIndex = 0;
+				break;
+			case EXIBINDO_FILME:
+				colorIndex = 1;
+				break;
+			case EXIBICAO_ENCERRADA:
+				colorIndex = 2;
+				break;
+			default:
+				colorIndex = 0;
+				break;
+		}
 
-			int finalColorIndex = Math.min(colorIndex, color.size() - 1);
-			Color targetColor = color.get(finalColorIndex);
+		int finalColorIndex = Math.min(colorIndex, color.size() - 1);
+		Color targetColor = color.get(finalColorIndex);
 
-			// Se já houver uma animação, parar antes de criar nova
-			Timeline existingTimeline = blinkingDemonstratorTimelines.get(label);
-			if (existingTimeline != null) {
-				existingTimeline.stop();
-			}
+		// Se já houver uma animação, parar antes de criar nova
+		Timeline existingTimeline = blinkingDemonstratorTimelines.get(lbDemonstratorStatus);
+		if (existingTimeline != null) {
+			existingTimeline.stop();
+		}
 
-			Timeline timeline = new Timeline(
-					new KeyFrame(Duration.ZERO,
-							e -> label.setStyle("-fx-background-color: " + toRgbString(Color.WHITE) + ";")),
-					new KeyFrame(duration,
-							e -> label.setStyle("-fx-background-color: " + toRgbString(targetColor) + ";")));
+		Timeline timeline = new Timeline(
+				new KeyFrame(Duration.ZERO,
+						e -> lbDemonstratorStatus.setStyle("-fx-background-color: " + toRgbString(Color.WHITE) + ";")),
+				new KeyFrame(duration,
+						e -> lbDemonstratorStatus.setStyle("-fx-background-color: " + toRgbString(targetColor) + ";")));
 
-			timeline.setCycleCount(Animation.INDEFINITE);
-			timeline.setAutoReverse(true);
-			// Armazenar a nova animação
-			blinkingDemonstratorTimelines.put(label, timeline);
-			timeline.play();
-		});
+		timeline.setCycleCount(Animation.INDEFINITE);
+		timeline.setAutoReverse(true);
+		// Armazenar a nova animação
+		blinkingDemonstratorTimelines.put(lbDemonstratorStatus, timeline);
 	}
 
 	private String toRgbString(Color color) {
@@ -384,43 +387,90 @@ public class MainController {
 	}
 
 	private void resizeGridPane() {
-		// O total de colunas deve ser o maior número de colunas usadas em qualquer
-		// linha
-		int maxColumns = fans.stream()
-				.collect(Collectors.groupingBy(CinemaThread.Fan::getStatus))
-				.values().stream()
-				.mapToInt(List::size)
-				.max()
-				.orElse(0) + 1; // +1 para incluir a coluna 0 fixa
+		Platform.runLater(() -> {
+			// O total de colunas deve ser o maior número de colunas usadas em qualquer
+			// linha
+			int maxColumns = fans.stream()
+					.collect(Collectors.groupingBy(CinemaThread.Fan::getStatus))
+					.values().stream()
+					.mapToInt(List::size)
+					.max()
+					.orElse(0) + 1; // +1 para incluir a coluna 0 fixa
+	
+			// Ajusta o número de ColumnConstraints
+			List<ColumnConstraints> constraints = gpFanStatus.getColumnConstraints();
+	
+			// Garante que temos constraints suficientes
+			while (constraints.size() < maxColumns) {
+				ColumnConstraints cc = new ColumnConstraints();
+				cc.setHgrow(Priority.ALWAYS);
+				constraints.add(cc);
+			}
+	
+			// Ajusta o tamanho das colunas dinâmicas (exceto a 0)
+			double availableWidth = gpFanStatus.getWidth() - gpFanStatus.getColumnConstraints().get(0).getPrefWidth();
+			double widthPerCol = availableWidth / (maxColumns - 1);
+	
+			for (int i = 1; i < maxColumns; i++) {
+				ColumnConstraints cc = gpFanStatus.getColumnConstraints().get(i);
+				cc.setPrefWidth(widthPerCol);
+				cc.setMinWidth(widthPerCol);
+				cc.setMaxWidth(widthPerCol);
+			}
+		});
+	}
 
-		// Ajusta o número de ColumnConstraints
-		List<ColumnConstraints> constraints = gpFanStatus.getColumnConstraints();
+	public void updateDemonstratorStatus() {
+		Platform.runLater(() -> {
+			if (demonstrator == null) return;
+			isToBlinkDemonstratorTimelines.clear();
+			lbDemonstratorStatus.setStyle("-fx-background-color: " + toRgbString(Color.GRAY) + ";");
+			lbDemonstratorStatus.setText("Demonstrador: " + demonstrator.getStatus());
+			makeLabelBlink(demonstrator, Arrays.asList(Color.GRAY, Color.GREEN, Color.YELLOW));
+			
+			if (CinemaThread.DemonstratorStatus.EXIBINDO_FILME.equals(demonstrator.getStatus())) {
+				isToBlinkDemonstratorTimelines.put(lbDemonstratorStatus, true);
+			} else if (CinemaThread.DemonstratorStatus.ESPERANDO_FANS.equals(demonstrator.getStatus()) 
+					|| CinemaThread.DemonstratorStatus.EXIBICAO_ENCERRADA.equals(demonstrator.getStatus())) {
+				isToBlinkDemonstratorTimelines.put(lbDemonstratorStatus, false);
+			}
 
-		// Garante que temos constraints suficientes
-		while (constraints.size() < maxColumns) {
-			ColumnConstraints cc = new ColumnConstraints();
-			cc.setHgrow(Priority.ALWAYS);
-			constraints.add(cc);
-		}
-
-		// Ajusta o tamanho das colunas dinâmicas (exceto a 0)
-		double availableWidth = gpFanStatus.getWidth() - gpFanStatus.getColumnConstraints().get(0).getPrefWidth();
-		double widthPerCol = availableWidth / (maxColumns - 1);
-
-		for (int i = 1; i < maxColumns; i++) {
-			ColumnConstraints cc = gpFanStatus.getColumnConstraints().get(i);
-			cc.setPrefWidth(widthPerCol);
-			cc.setMinWidth(widthPerCol);
-			cc.setMaxWidth(widthPerCol);
+			if (isToBlinkDemonstratorTimelines.get(lbDemonstratorStatus))
+				blinkingDemonstratorTimelines.get(lbDemonstratorStatus).play();
+			else
+				blinkingDemonstratorTimelines.get(lbDemonstratorStatus).stop();
+		});
+	}
+	
+	public void pauseAnimationFan() {
+		for (Timeline fanTimeline : blinkingFansTimelines.values()) {
+			if (Animation.Status.RUNNING.equals(fanTimeline.getStatus())) {
+				fanTimeline.stop();
+			}
 		}
 	}
 
-	private void updateDemonstratorStatus() {
-		Platform.runLater(() -> {
-			if (demonstrator != null)
-				lbDemonstratorStatus.setText("Demonstrador: " + demonstrator.getStatus());
-			makeLabelBlink(lbDemonstratorStatus, demonstrator,
-					Arrays.asList(Color.Gray, Color.Green, Color.Yellow, Color.Red));
-		});
+	public void startAnimationFan() {
+		for (Timeline fanTimeline : blinkingFansTimelines.values()) {
+			if (Animation.Status.STOPPED.equals(fanTimeline.getStatus())) {
+				fanTimeline.play();
+			}
+		}
+	}
+
+	public void pauseAnimationDemonstrator() {
+		for (Timeline demonstratorTimeLine : blinkingDemonstratorTimelines.values()) {
+			if (Animation.Status.RUNNING.equals(demonstratorTimeLine.getStatus())) {
+				demonstratorTimeLine.stop();
+			}
+		}
+	}
+
+	public void startAnimationDemonstrator() {
+		for (Timeline demonstratorTimeLine : blinkingDemonstratorTimelines.values()) {
+			if (Animation.Status.STOPPED.equals(demonstratorTimeLine.getStatus())) {
+				demonstratorTimeLine.play();
+			}
+		}
 	}
 }
