@@ -35,3 +35,16 @@ Para executar este projeto, você precisará:
 - `CinemaThread.java` – Contém a lógica principal com as classes `Demonstrator` e `Fan`.
 
 ## 🔧 Sugestão de Execução
+ Para gerar o jar utilize:
+
+  ```java --module-path C:\javafx-sdk-17.0.13\lib --add-modules javafx.controls,javafx.fxml -jar cinema_multi_thread jar java --module-path C:\javafx-sdk-17.0.13\lib --add-modules javafx.controls,javafx.fxml -jar cinema_multi_thread.jar ```
+
+  depois:
+  ```xcopy src\main\resources out\ /E /I /Y ```
+
+  e por fim:
+  ```jar cvfm cinema_multi_thread.jar out\META-INF\MANIFEST.MF -C out .```
+
+  e para executar utilize:
+  ```java --module-path C:\javafx-sdk-17.0.13\lib --add-modules javafx.controls,javafx.fxml -jar cinema_multi_thread.jar```
+
